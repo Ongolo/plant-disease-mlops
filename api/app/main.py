@@ -1,14 +1,16 @@
+import os
+
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from PIL import UnidentifiedImageError
 
 from .model import PlantDiseaseModel, load_image
 
+# Chemins lus dans les variables d'environnement (avec une valeur par défaut pour le local)
+MODEL_PATH = os.getenv("MODEL_PATH", "../models/model.onnx")
+CLASSES_PATH = os.getenv("CLASSES_PATH", "../models/classes.json")
+
 app = FastAPI(title="Plant Disease API")
-
-# Chargé une seule fois au démarrage de l'API
-model = PlantDiseaseModel("../models/model.onnx", "../models/classes.json")
-
-
+model = PlantDiseaseModel(MODEL_PATH, CLASSES_PATH)
 @app.get("/health")
 def health():
     return {"status": "ok", "n_classes": len(model.classes)}
