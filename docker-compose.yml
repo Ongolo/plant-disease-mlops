@@ -1,0 +1,26 @@
+services:
+
+  api:
+    build: ./api
+    environment:
+      MODEL_PATH: /models/model.onnx
+      CLASSES_PATH: /models/classes.json
+    volumes:
+      - ./models:/models:ro
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  ui:
+    build: ./ui
+    environment:
+      API_URL: http://api:8000
+    ports:
+      - "8501:8501"
+    depends_on:
+      api:
+        condition: service_healthy
