@@ -1,14 +1,32 @@
 services:
 
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-plant}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-plant}
+      POSTGRES_DB: ${POSTGRES_DB:-plant}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-plant}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   api:
     build: ./api
     environment:
       MODEL_PATH: /models/model.onnx
       CLASSES_PATH: /models/classes.json
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-plant}:${POSTGRES_PASSWORD:-plant}@postgres:5432/${POSTGRES_DB:-plant}
     volumes:
       - ./models:/models:ro
     ports:
       - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 10s
@@ -24,3 +42,18 @@ services:
     depends_on:
       api:
         condition: service_healthy
+
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.22.0
+    command: >
+      mlflow server --host 0.0.0.0 --port 5000
+      --backend-store-uri sqlite:////mlflow/mlflow.db
+      --default-artifact-root /mlflow/artifacts
+    volumes:
+      - mlflowdata:/mlflow
+    ports:
+      - "5000:5000"
+
+volumes:
+  pgdata:
+  mlflowdata:
