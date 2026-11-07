@@ -8,8 +8,7 @@ DEFAULT_TOKEN = os.getenv("UI_TOKEN", "")
 
 st.set_page_config(page_title="Diagnostic des plantes", page_icon="🌿")
 st.title("🌿 Diagnostic de maladies des plantes")
-st.caption("Deposez la photo d'une feuille : le modele predit la maladie parmi 38 classes.")
-
+st.caption("Deposez la photo d'une feuille : le modele predit la maladie parmi 38 classes. (v1.1 - deploiement automatique)")
 # Token envoye a l'API (pre-rempli avec celui de l'interface)
 token = st.sidebar.text_input("Token API", value=DEFAULT_TOKEN, type="password")
 headers = {"Authorization": f"Bearer {token}"}
