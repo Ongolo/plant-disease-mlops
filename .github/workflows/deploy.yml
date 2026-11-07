@@ -1,0 +1,47 @@
+name: Deploy to AWS
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Configurer la cle SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VM_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Deployer sur la VM
+        run: |
+          ssh -i ~/.ssh/deploy_key "${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}" << 'EOF'
+            set -e
+            cd ~/plant-disease-mlops
+            git pull --ff-only
+            docker compose up -d --build
+            docker image prune -f
+            docker compose ps
+          EOF
+
+      - name: Verifier que l'API repond
+        run: |
+          for i in $(seq 1 30); do
+            if curl -fs "http://${{ secrets.VM_HOST }}:8000/health"; then
+              echo ""
+              echo "API OK"
+              exit 0
+            fi
+            echo "Attente de l'API ($i/30)..."
+            sleep 10
+          done
+          echo "L'API ne repond pas"
+          exit 1
