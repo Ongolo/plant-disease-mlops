@@ -1,0 +1,28 @@
+{
+  "arch": "mobilenet_v3_large",
+  "pretrained": true,
+  "epochs": 3,
+  "batch_size": 64,
+  "lr": 0.001,
+  "n_train": 43444,
+  "n_test": 10861,
+  "test_accuracy": 0.9955805174477488,
+  "f1_macro": 0.9932618215288752,
+  "history": [
+    {
+      "epoch": 1,
+      "train_loss": 0.1879550736330296,
+      "test_accuracy": 0.9707209280913359
+    },
+    {
+      "epoch": 2,
+      "train_loss": 0.049673257189155086,
+      "test_accuracy": 0.9621581806463493
+    },
+    {
+      "epoch": 3,
+      "train_loss": 0.013485598047143476,
+      "test_accuracy": 0.9955805174477488
+    }
+  ]
+}
