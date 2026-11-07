@@ -13,17 +13,26 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      VM_HOST: ${{ secrets.VM_HOST }}
+      VM_USER: ${{ secrets.VM_USER }}
+      VM_SSH_KEY: ${{ secrets.VM_SSH_KEY }}
     steps:
       - name: Configurer la cle SSH
         run: |
+          # Nettoyage : espaces, retours a la ligne et fins de ligne Windows (\r)
+          HOST=$(printf '%s' "$VM_HOST" | tr -d '[:space:]')
+          USER_VM=$(printf '%s' "$VM_USER" | tr -d '[:space:]')
+          echo "TARGET=$USER_VM@$HOST" >> "$GITHUB_ENV"
+          echo "HOST=$HOST" >> "$GITHUB_ENV"
           mkdir -p ~/.ssh
-          echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/deploy_key
+          printf '%s\n' "$VM_SSH_KEY" | tr -d '\r' > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H "${{ secrets.VM_HOST }}" >> ~/.ssh/known_hosts
+          ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts
 
       - name: Deployer sur la VM
         run: |
-          ssh -i ~/.ssh/deploy_key "${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}" << 'EOF'
+          ssh -i ~/.ssh/deploy_key "$TARGET" << 'EOF'
             set -e
             cd ~/plant-disease-mlops
             git pull --ff-only
@@ -35,7 +44,7 @@ jobs:
       - name: Verifier que l'API repond
         run: |
           for i in $(seq 1 30); do
-            if curl -fs "http://${{ secrets.VM_HOST }}:8000/health"; then
+            if curl -fs "http://$HOST:8000/health"; then
               echo ""
               echo "API OK"
               exit 0
