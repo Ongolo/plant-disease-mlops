@@ -20,6 +20,7 @@ services:
       MODEL_PATH: /models/model.onnx
       CLASSES_PATH: /models/classes.json
       DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-plant}:${POSTGRES_PASSWORD:-plant}@postgres:5432/${POSTGRES_DB:-plant}
+      API_TOKENS: ${API_TOKENS}
     volumes:
       - ./models:/models:ro
     ports:
@@ -37,6 +38,7 @@ services:
     build: ./ui
     environment:
       API_URL: http://api:8000
+      UI_TOKEN: ${UI_TOKEN}
     ports:
       - "8501:8501"
     depends_on:
