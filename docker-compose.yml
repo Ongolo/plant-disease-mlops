@@ -1,6 +1,7 @@
 services:
 
   postgres:
+    restart: unless-stopped
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-plant}
@@ -15,6 +16,7 @@ services:
       retries: 10
 
   api:
+    restart: unless-stopped
     build: ./api
     environment:
       MODEL_PATH: /models/model.onnx
@@ -35,6 +37,7 @@ services:
       retries: 10
 
   ui:
+    restart: unless-stopped
     build: ./ui
     environment:
       API_URL: http://api:8000
@@ -46,6 +49,7 @@ services:
         condition: service_healthy
 
   mlflow:
+    restart: unless-stopped
     image: ghcr.io/mlflow/mlflow:v2.22.0
     command: >
       mlflow server --host 0.0.0.0 --port 5000
