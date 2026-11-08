@@ -4,3 +4,4 @@ __pycache__/
 *.db
 demo_images/
 reports_local/
+models_int8/
