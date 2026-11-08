@@ -1,7 +1,8 @@
 import os
 from datetime import datetime, timezone
 
-from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String, create_engine
+from sqlalchemy import (Column, DateTime, Float, ForeignKey, Integer, String, create_engine,
+                        inspect, text)
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 # Adresse de la base : PostgreSQL dans Docker, SQLite par defaut en local
@@ -29,6 +30,7 @@ class PredictionLog(Base):
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    model_version = Column(String)
     predicted_class = Column(String)
     confidence = Column(Float)
     latency_ms = Column(Float)
@@ -42,9 +44,18 @@ class PredictionLog(Base):
     mean_b = Column(Float)
 
 
+def _add_missing_columns() -> None:
+    """Petite migration : ajoute la colonne model_version si la table existait deja sans elle."""
+    cols = [c["name"] for c in inspect(engine).get_columns("prediction_logs")]
+    if "model_version" not in cols:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE prediction_logs ADD COLUMN model_version VARCHAR"))
+
+
 def init_db() -> None:
     """Cree les tables si besoin, puis cree/met a jour les utilisateurs de API_TOKENS."""
     Base.metadata.create_all(engine)
+    _add_missing_columns()
     pairs = [p.split(":", 1) for p in API_TOKENS.split(",") if ":" in p]
     with SessionLocal() as db:
         for name, token in pairs:
