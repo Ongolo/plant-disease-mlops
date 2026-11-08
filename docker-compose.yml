@@ -52,6 +52,9 @@ services:
     environment:
       API_URL: http://api:8000
       UI_TOKEN: ${UI_TOKEN}
+      REPORTS_DIR: /reports
+    volumes:
+      - reports:/reports:ro
     ports:
       - "8501:8501"
     depends_on:
