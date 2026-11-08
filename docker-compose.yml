@@ -68,6 +68,23 @@ services:
     ports:
       - "5000:5000"
 
+  monitoring:
+    build: ./monitoring
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-plant}:${POSTGRES_PASSWORD:-plant}@postgres:5432/${POSTGRES_DB:-plant}
+      REFERENCE_PATH: /app/reference.csv
+      REPORTS_DIR: /reports
+      DRIFT_WINDOW: "200"
+      DRIFT_INTERVAL_MIN: "60"
+      DRIFT_EXCLUDE_USERS: bob
+    volumes:
+      - reports:/reports
+    depends_on:
+      postgres:
+        condition: service_healthy
+
 volumes:
   pgdata:
   mlflowdata:
+  reports:

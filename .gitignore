@@ -2,3 +2,5 @@
 __pycache__/
 .env
 *.db
+demo_images/
+reports_local/
