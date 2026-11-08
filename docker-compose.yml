@@ -1,8 +1,8 @@
 services:
 
   postgres:
-    restart: unless-stopped
     image: postgres:16-alpine
+    restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-plant}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-plant}
@@ -16,13 +16,18 @@ services:
       retries: 10
 
   api:
-    restart: unless-stopped
     build: ./api
+    restart: unless-stopped
     environment:
       MODEL_PATH: /models/model.onnx
       CLASSES_PATH: /models/classes.json
       DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-plant}:${POSTGRES_PASSWORD:-plant}@postgres:5432/${POSTGRES_DB:-plant}
       API_TOKENS: ${API_TOKENS}
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+      MODEL_NAME: plant-disease-classifier
+      MODEL_ALIAS: production
+      MLFLOW_HTTP_REQUEST_MAX_RETRIES: "1"
+      MLFLOW_HTTP_REQUEST_TIMEOUT: "10"
     volumes:
       - ./models:/models:ro
     ports:
@@ -30,15 +35,18 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      mlflow:
+        condition: service_started
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 10s
       timeout: 3s
       retries: 10
+      start_period: 40s
 
   ui:
-    restart: unless-stopped
     build: ./ui
+    restart: unless-stopped
     environment:
       API_URL: http://api:8000
       UI_TOKEN: ${UI_TOKEN}
@@ -49,12 +57,12 @@ services:
         condition: service_healthy
 
   mlflow:
-    restart: unless-stopped
     image: ghcr.io/mlflow/mlflow:v2.22.0
+    restart: unless-stopped
     command: >
       mlflow server --host 0.0.0.0 --port 5000
       --backend-store-uri sqlite:////mlflow/mlflow.db
-      --default-artifact-root /mlflow/artifacts
+      --artifacts-destination /mlflow/artifacts
     volumes:
       - mlflowdata:/mlflow
     ports:

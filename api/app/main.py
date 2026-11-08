@@ -10,7 +10,9 @@ from sqlalchemy.orm import Session
 
 from .db import PredictionLog, User, get_db, init_db
 from .model import PlantDiseaseModel, image_stats, load_image
+from .registry import fetch_production_model
 
+# Fichiers locaux : utilises si MLflow n'est pas configure ou injoignable
 MODEL_PATH = os.getenv("MODEL_PATH", "../models/model.onnx")
 CLASSES_PATH = os.getenv("CLASSES_PATH", "../models/classes.json")
 
@@ -19,9 +21,15 @@ state = {}
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Au demarrage : creation des tables + utilisateurs, chargement du modele
+    # Au demarrage : creation des tables + utilisateurs, puis chargement du modele
     init_db()
-    state["model"] = PlantDiseaseModel(MODEL_PATH, CLASSES_PATH)
+    from_mlflow = fetch_production_model()
+    if from_mlflow:
+        model_path, classes_path, version = from_mlflow
+    else:
+        model_path, classes_path, version = MODEL_PATH, CLASSES_PATH, "local (fichiers /models)"
+    state["model"] = PlantDiseaseModel(model_path, classes_path)
+    state["version"] = version
     yield
 
 
@@ -43,7 +51,8 @@ def current_user(creds: HTTPAuthorizationCredentials | None = Depends(bearer),
 @app.get("/health")
 def health():
     # Reste public : Docker l'utilise pour verifier que l'API est vivante
-    return {"status": "ok", "n_classes": len(state["model"].classes)}
+    return {"status": "ok", "n_classes": len(state["model"].classes),
+            "model_version": state["version"]}
 
 
 @app.post("/predict")
@@ -60,15 +69,17 @@ async def predict(file: UploadFile = File(...),
     preds = state["model"].predict(img)
     latency_ms = (time.perf_counter() - t0) * 1000
 
-    # Enregistrement de la requete dans PostgreSQL
+    # Enregistrement de la requete dans PostgreSQL (avec la version du modele)
     db.add(PredictionLog(user_id=user.id,
+                         model_version=state["version"],
                          predicted_class=preds[0]["label"],
                          confidence=preds[0]["confidence"],
                          latency_ms=latency_ms,
                          **image_stats(img)))
     db.commit()
 
-    return {"prediction": preds[0], "top_k": preds, "latency_ms": round(latency_ms, 2)}
+    return {"prediction": preds[0], "top_k": preds, "latency_ms": round(latency_ms, 2),
+            "model_version": state["version"]}
 
 
 @app.get("/usage/me")

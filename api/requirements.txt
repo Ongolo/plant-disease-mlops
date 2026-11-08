@@ -6,3 +6,4 @@ numpy==2.2.6
 pillow==11.2.1
 sqlalchemy==2.0.41
 psycopg2-binary==2.9.10
+mlflow-skinny==2.22.0
