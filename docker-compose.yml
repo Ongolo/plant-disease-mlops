@@ -28,6 +28,8 @@ services:
       MODEL_ALIAS: production
       MLFLOW_HTTP_REQUEST_MAX_RETRIES: "1"
       MLFLOW_HTTP_REQUEST_TIMEOUT: "10"
+      WEB_CONCURRENCY: "2"
+      ORT_THREADS: "1"
     volumes:
       - ./models:/models:ro
     ports:

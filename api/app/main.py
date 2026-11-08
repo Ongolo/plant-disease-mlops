@@ -21,8 +21,16 @@ state = {}
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Au demarrage : creation des tables + utilisateurs, puis chargement du modele
-    init_db()
+        # Au demarrage : creation des tables + utilisateurs, puis chargement du modele.
+    # Plusieurs workers demarrent en meme temps : si l'un echoue (conflit), il reessaie.
+    for attempt in range(3):
+        try:
+            init_db()
+            break
+        except Exception:
+            if attempt == 2:
+                raise
+            time.sleep(2)
     from_mlflow = fetch_production_model()
     if from_mlflow:
         model_path, classes_path, version = from_mlflow

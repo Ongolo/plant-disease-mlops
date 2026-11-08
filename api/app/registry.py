@@ -26,8 +26,7 @@ def fetch_production_model(attempts: int = 5, wait_s: int = 5):
     for i in range(1, attempts + 1):
         try:
             mv = MlflowClient().get_model_version_by_alias(MODEL_NAME, MODEL_ALIAS)
-            dest = os.path.join(CACHE_DIR, f"v{mv.version}")
-            os.makedirs(dest, exist_ok=True)
+            dest = os.path.join(CACHE_DIR, f"v{mv.version}-pid{os.getpid()}")  # 1 dossier par worker            os.makedirs(dest, exist_ok=True)
             path = mlflow.artifacts.download_artifacts(
                 artifact_uri=f"models:/{MODEL_NAME}@{MODEL_ALIAS}", dst_path=dest)
             label = f"{MODEL_NAME} v{mv.version}"
